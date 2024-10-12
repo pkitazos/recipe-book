@@ -20,7 +20,7 @@ import { type AdapterAccount } from "next-auth/adapters";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const createTable = pgTableCreator((name) => `recipe-book_${name}`);
+export const createTable = pgTableCreator((name) => `recipe_book_${name}`);
 
 export const recipes = createTable("recipe", {
   id: serial("id").primaryKey(),
@@ -35,8 +35,11 @@ export const recipes = createTable("recipe", {
     () => new Date(),
   ),
   authorId: varchar("author_id", { length: 255 })
-    .notNull()
-    .references(() => users.id),
+    .references(() => users.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    })
+    .notNull(),
 });
 
 export const ingredients = createTable("ingredient", {
@@ -45,10 +48,20 @@ export const ingredients = createTable("ingredient", {
 });
 
 export const ingredientsInRecipe = createTable(
-  "ingredient",
+  "ingredient_in_recipe",
   {
-    recipeId: serial("recipeId").references(() => recipes.id),
-    ingredientId: serial("ingredientId").references(() => ingredients.id),
+    recipeId: integer("recipe_id")
+      .references(() => recipes.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      })
+      .notNull(),
+    ingredientId: integer("ingredient_id")
+      .references(() => ingredients.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      })
+      .notNull(),
     quantity: varchar("quantity", { length: 256 }),
     unit: varchar("unit", { length: 256 }),
   },
@@ -60,9 +73,12 @@ export const blocks = createTable(
   {
     id: serial("id").primaryKey(),
     sequenceNumber: real("sequence_number").notNull(),
-    recipeId: serial("recipeId")
-      .notNull()
-      .references(() => recipes.id),
+    recipeId: integer("recipe_id")
+      .references(() => recipes.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      })
+      .notNull(),
     content: json("content").notNull(),
   },
   (t) => ({ unq: unique().on(t.sequenceNumber, t.recipeId) }),
